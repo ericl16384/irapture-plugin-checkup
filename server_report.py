@@ -2,7 +2,7 @@
 
 
 import csv
-import json
+# import json
 import os
 
 
@@ -250,6 +250,24 @@ def get_active_plugins(filename):
 
 
 if __name__ == "__main__":
+    print("starting")
+
+    print("loading config")
+
+    plugin_prices = {}
+
+    with open("Config for Plugin Billing Manager - Sheet1.csv", "r") as f:
+        for i, line in enumerate(csv.reader(f, lineterminator="\n")):
+            if i == 0:
+                assert line == ["plugin", "cost"]
+                continue
+
+            assert line[0] not in plugin_prices
+            plugin_prices[line[0]] = float(line[1].strip("$"))
+
+
+    print("processing dumps/ folder")
+
     active_plugins_by_dump = {}
     for file in os.listdir("dumps/"):
         plugins = get_active_plugins("dumps/" + file)
@@ -266,14 +284,25 @@ if __name__ == "__main__":
 
     # print(json.dumps(all_plugins, indent=2))
 
-    export_table = [["sql dump", *all_plugins]]
+
+    print("saving results to plugin_report.csv")
+
+    export_table = [["sql dump", "cost", *all_plugins]]
     for dump in sorted(active_plugins_by_dump.keys()):
-        export_table.append([dump])
+        export_table.append([dump, 0])
+
         for plugin in all_plugins:
             if plugin in active_plugins_by_dump[dump]:
+
+                if plugin in plugin_prices:
+                    export_table[-1][1] += plugin_prices[plugin]
+
                 export_table[-1].append("present")
             else:
                 export_table[-1].append("missing")
 
     with open("plugin_report.csv", "w") as f:
         csv.writer(f, lineterminator="\n").writerows(export_table)
+
+
+    print("finished")
